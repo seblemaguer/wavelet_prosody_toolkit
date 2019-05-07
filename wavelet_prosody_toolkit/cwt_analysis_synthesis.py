@@ -206,10 +206,13 @@ def run():
                                                         scale_distance=configuration["wavelet"]["scale_distance"],
                                                         apply_coi=False)
         full_scales = np.real(full_scales)
-        # SSW parameterization, adjacent scales combined (with extra scales to handle long utterances)
-        scales = cwt_utils.combine_scales(np.real(full_scales), configuration["wavelet"]["combined_scales"])
-        for i in range(0, len(scales)):
-            logging.debug("Mean scale[%d]: %s" % (i, str(np.mean(scales[i]))))
+        if ("combined_scales" in configuration["wavelet"]) and (configuration["wavelet"]["combined_scales"]):
+            # SSW parameterization, adjacent scales combined (with extra scales to handle long utterances)
+            scales = cwt_utils.combine_scales(np.real(full_scales), configuration["wavelet"]["combined_scales"])
+            for i in range(0, len(scales)):
+                logging.debug("Mean scale[%d]: %s" % (i, str(np.mean(scales[i]))))
+        else:
+            scales = full_scales
 
         # Saving matrix
         logging.info("writing wavelet matrix in \"%s\"" % args.output_file)
