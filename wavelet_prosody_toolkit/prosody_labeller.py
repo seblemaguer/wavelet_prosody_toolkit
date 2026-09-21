@@ -121,7 +121,7 @@ def apply_configuration(current_configuration, updating_part):
 
 
 
-def analysis(input_file, cfg, logger, annotation_dir=None, output_dir=None, plot=False):
+def analysis(input_file, cfg, logger, annotation_dir=None, output_dir=None, plot=0):
 
     # Load the wave file
     print("Analyzing %s starting..." % input_file)
@@ -291,7 +291,7 @@ def analysis(input_file, cfg, logger, annotation_dir=None, output_dir=None, plot
         loma.plot_loma(pos_loma, ax[4], color="black")
         loma.plot_loma(neg_loma, ax[4], color="white")
         ax[4].set_ylabel("Wavelet & \n LOMA", rotation="horizontal", ha="right", va="center")
-        
+
         # Add labels
         prom_text =  prominences[:, 1]/(np.max(prominences[:, 1]))*2.5 + 0.5
         lab.plot_labels(labels, ypos=0.3, size=6, prominences=prom_text, fig=ax[5], boundary=False, background=False)
@@ -300,13 +300,13 @@ def analysis(input_file, cfg, logger, annotation_dir=None, output_dir=None, plot
             for a in [0, 1, 2, 3, 4, 5]:
                 ax[a].axvline(x=labels[i][0], color='black',
                               linestyle="-", linewidth=0.2, alpha=0.5)
-                
+
                 ax[a].axvline(x=labels[i][1], color='black',
                               linestyle="-", linewidth=0.2+boundaries[i][-1] * 2,
                               alpha=0.5)
 
         plt.xlim(0, cwt.shape[1])
-    
+
         # Align ylabels and remove axis
         fig.align_ylabels(ax)
         for i in range(len(ax)-1):

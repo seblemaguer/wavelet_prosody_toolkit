@@ -137,7 +137,7 @@ def exception_log(logger, head_msg, ex, level=logging.ERROR):
 
     """
     logger.log(level, "%s:" % head_msg)
-    logger.log(level, "<br />".join(traceback.format_exception(etype=type(ex), value=ex, tb=ex.__traceback__)))
+    logger.log(level, "<br />".join(traceback.format_exception(ex)))
 
 
 ###############################################################################
