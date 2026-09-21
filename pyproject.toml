@@ -63,6 +63,7 @@ dev = [
 [project.scripts]
 prosody_labeller = "wavelet_prosody_toolkit.prosody_labeller:main"
 cwt_analysis_synthesis = "wavelet_prosody_toolkit.cwt_analysis_synthesis:main"
+cwt_global_spectrum = "wavelet_prosody_toolkit.cwt_global_spectrum:main"
 wavelet_gui = "wavelet_prosody_toolkit.wavelet_gui:main"
 
 [project.urls]

@@ -2,29 +2,38 @@
 # -*- coding: utf-8 -*-
 """
 AUTHOR
-    - Antti Suni <antti.suni@helsinki.fi>
-    - Sébastien Le Maguer <lemagues@tcd.ie>
+   - Antti Suni <antti.suni@helsinki.fi>
+   - Sébastien Le Maguer <sebastien.lemaguer@helsinki.fi>
 
 DESCRIPTION
-    usage: wavelet_gui [-h] [-v] [-c CONFIG]
+   usage: wavelet_gui [-h] [-v] [-c CONFIG]
 
-    GUI application to analyze prosody using wavelets.
+   GUI application to analyze prosody using wavelets.
 
-    optional arguments:
-      -h, --help            		show this help message and exit
-      -v, --verbosity       		increase output verbosity
-      -c CONFIG, --config CONFIG	configuration file
+   optional arguments:
+     -h, --help            		show this help message and exit
+     -v, --verbosity       		increase output verbosity
+     -c CONFIG, --config CONFIG	configuration file
 
-LICENSE
-    See https://github.com/asuni/wavelet_prosody_toolkit/blob/master/LICENSE.txt
+ LICENSE
+   See https://github.com/asuni/wavelet_prosody_toolkit/blob/master/LICENSE.txt
 """
 
+# Core Python
 import sys
 import os
-import traceback
 import argparse
-import time
+
+# Messaging/logging
+import traceback
 import logging
+from logging.config import dictConfig
+try:
+    import pythonjsonlogger
+    JSON_LOGGER = True
+except Exception:
+    JSON_LOGGER = False
+
 
 import yaml
 
@@ -78,24 +87,22 @@ try:
 except NameError:
     unicode = str
 
-# Analysis sample rate
-ANALYSIS_SR = 8000.0
-
-# Plot sample rate
-PLOT_SR = 200.0
-
-
 ###############################################################################
-# Logging
+# global constants
 ###############################################################################
-# List of logging levels used to setup everything using verbose option
 LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
+ANALYSIS_SR = 8000.0 # Analysis sample rate
+PLOT_SR = 200.0      # Plot sample rate
 DEFAULT_CMAP = "viridis"
 
 if not QtWidgets.QApplication.instance():
     APP = QtWidgets.QApplication(["SpINY"])
 else:
     APP = QtWidgets.QApplication.instance()
+
+###############################################################################
+# Logging
+###############################################################################
 
 
 class QtHandler(logging.Handler):
@@ -1107,84 +1114,140 @@ def apply_configuration(current_configuration, updating_part):
     return current_configuration
 
 
-##############################################################################################
-# Main routine definition
-##############################################################################################
-def main():
-    """Entry point which start the QT application
+###############################################################################
+# Functions
+###############################################################################
+def configure_logger(args) -> logging.Logger:
+    """Setup the global logging configurations and instanciate a specific logger for the current script
+
+    Parameters
+    ----------
+    args : dict
+        The arguments given to the script
+
+    Returns
+    --------
+    the logger: logger.Logger
     """
-    try:
-        parser = argparse.ArgumentParser(description="GUI application to analyze prosody using wavelets.")
+    # create logger and formatter
+    logger = logging.getLogger()
 
-        # Add options
-        parser.add_argument("-v", "--verbosity", action="count", default=0,
-                            help="increase output verbosity")
+    # Verbose level => logging level
+    log_level = args.verbosity
+    if args.verbosity >= len(LEVEL):
+        log_level = len(LEVEL) - 1
+        # logging.warning("verbosity level is too high, I'm gonna assume you're taking the highest (%d)" % log_level)
 
-        # Load default configuration
-        parser.add_argument("-c", "--config", default=None, help="configuration file")
+    # Define the default logger configuration
+    logging_config = dict(
+        version=1,
+        disable_existing_logger=True,
+        formatters={
+            "f": {
+                "format": "[%(asctime)s] [%(levelname)s] — [%(name)s — %(funcName)s:%(lineno)d] %(message)s",
+                "datefmt": "%d/%b/%Y: %H:%M:%S ",
+            }
+        },
+        handlers={
+            "h": {
+                "class": "logging.StreamHandler",
+                "formatter": "f",
+                "level": LEVEL[log_level],
+            }
+        },
+        root={"handlers": ["h"], "level": LEVEL[log_level]},
+    )
 
-        # Parsing arguments
-        args = parser.parse_args()
+    # Add file handler if file logging required
+    if args.log_file is not None:
+        cur_formatter_key = "f"
+        if JSON_LOGGER:
+            logging_config["formatters"]["j"] = {
+                '()': 'pythonjsonlogger.json.JsonFormatter',
+                'fmt': '%(asctime)s %(levelname)s %(filename)s %(lineno)d %(message)s',
+                'rename_fields': {'asctime': 'time', 'levelname': 'level', 'lineno': 'line_number'}
+            }
+            cur_formatter_key = "j"
 
-        # Verbose level => logging level
-        log_level = args.verbosity
-        if (args.verbosity >= len(LEVEL)):
-            log_level = len(LEVEL) - 1
-            logging.basicConfig(level=LEVEL[log_level])
-            logging.warning("verbosity level is too high, I'm gonna assume you're taking the highest (%d)" % log_level)
-        else:
-            logging.basicConfig(level=LEVEL[log_level])
+        logging_config["handlers"]["f"] = {
+            "class": "logging.FileHandler",
+            "formatter": cur_formatter_key,
+            "level": LEVEL[log_level],
+            "filename": args.log_file,
+        }
+        logging_config["root"]["handlers"] = ["h", "f"]
 
-        global_logger = logging.getLogger()
-        global_logger.addHandler(HANDLER)
+    # Setup logging configuration
+    dictConfig(logging_config)
 
-        # Load configuration
-        configuration = defaultdict()
-        with open(os.path.dirname(os.path.realpath(__file__)) + "/configs/default.yaml", 'r') as f:
-            configuration = apply_configuration(configuration, defaultdict(lambda: False, yaml.load(f, Loader=yaml.FullLoader)))
-            logging.debug("Default configuration loaded")
-            logging.debug(configuration)
+    # Retrieve and return the logger dedicated to the script
+    logger = logging.getLogger(__name__)
+    return logger
 
-        if args.config:
-            try:
-                with open(args.config, 'r') as f:
-                    configuration = apply_configuration(configuration, defaultdict(lambda: False, yaml.load(f, Loader=yaml.FullLoader)))
-                    logging.debug("configuration filled with user part")
-                    logging.debug(configuration)
-            except IOError as ex:
 
-                logging.error("configuration file " + args.config + " could not be loaded:")
-                logging.error(ex.msg)
-                sys.exit(1)
+def define_argument_parser() -> argparse.ArgumentParser:
+    """Defines the argument parser
 
-        # Debug time
-        start_time = time.time()
-        logging.info("start time = " + time.asctime())
+    Returns
+    --------
+    The argument parser: argparse.ArgumentParser
+    """
+    parser = argparse.ArgumentParser(description="")
 
-        main = SigWindow(configuration)
+    # Add logging options
+    parser.add_argument("-l", "--log_file", default=None, help="Logger file")
+    parser.add_argument(
+        "-v",
+        "--verbosity",
+        action="count",
+        default=0,
+        help="increase output verbosity",
+    )
 
-        main.show()
+    # Add performative options
+    parser.add_argument("-c", "--config", default=None, help="configuration file")
 
-        # Debug time
-        logging.info("end time = " + time.asctime())
-        logging.info('TOTAL TIME IN MINUTES: %02.2f' %
-                     ((time.time() - start_time) / 60.0))
-
-        # Exit program
-        sys.exit(APP.exec())
-    except KeyboardInterrupt as e:  # Ctrl-C
-        raise e
-    except SystemExit as e:  # sys.exit()
-        pass
-    except Exception as e:
-        logging.error('ERROR, UNEXPECTED EXCEPTION')
-        logging.error(str(e))
-        traceback.print_exc(file=sys.stderr)
-        sys.exit(-1)
+    # Return parser
+    return parser
 
 
 ###############################################################################
-#  Envelopping
+# Entry point
 ###############################################################################
-if __name__ == '__main__':
+def main():
+    # Initialization of the argument parser and the logger
+    arg_parser = define_argument_parser()
+    args = arg_parser.parse_args()
+    logger = configure_logger(args)
+
+
+    # Load configuration
+    configuration = defaultdict()
+    with open(os.path.dirname(os.path.realpath(__file__)) + "/configs/default.yaml", 'r') as f:
+        configuration = apply_configuration(configuration, defaultdict(lambda: False, yaml.load(f, Loader=yaml.FullLoader)))
+        logging.debug("Default configuration loaded")
+        logging.debug(configuration)
+
+    if args.config:
+        try:
+            with open(args.config, 'r') as f:
+                configuration = apply_configuration(configuration, defaultdict(lambda: False, yaml.load(f, Loader=yaml.FullLoader)))
+                logging.debug("configuration filled with user part")
+                logging.debug(configuration)
+        except IOError as ex:
+
+            logging.error("configuration file " + args.config + " could not be loaded:")
+            logging.error(ex.msg)
+            sys.exit(1)
+
+    # Starting the app
+    main = SigWindow(configuration)
+    main.show()
+    sys.exit(APP.exec())
+
+
+###############################################################################
+# Wrapping for directly calling the scripts
+###############################################################################
+if __name__ == "__main__":
     main()
