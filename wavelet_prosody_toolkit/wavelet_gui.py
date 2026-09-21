@@ -30,18 +30,18 @@ import yaml
 
 # QT related imports
 try:
-    from PyQt5 import QtCore, QtGui, QtWidgets, QtMultimedia
+    from PySide6 import QtCore, QtGui, QtWidgets, QtMultimedia
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
     from matplotlib.backends.backend_qt import NavigationToolbar2QT as NavigationToolbar
 
     # Plotting configuration
-    from matplotlib.ticker import MaxNLocator
+    from matplotlib.ticker import MaxNLocator, FixedLocator
     # from matplotlib.figure import Figure
     import matplotlib.pyplot as plt
     # import matplotlib.gridspec as gridspec
     import matplotlib.ticker as ticker
 except ModuleNotFoundError:
-    print("Qt and/or Matplotlib installed, install the [gui] setup to install the toolkit")
+    print("Qt and/or Matplotlib is installed, install the [gui] setup to install the toolkit")
     sys.exit(-1)
 
 # Numpy
@@ -90,6 +90,11 @@ PLOT_SR = 200.0
 ###############################################################################
 # List of logging levels used to setup everything using verbose option
 LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
+
+if not QtWidgets.QApplication.instance():
+    APP = QtWidgets.QApplication(["SpINY"])
+else:
+    APP = QtWidgets.QApplication.instance()
 
 
 class QtHandler(logging.Handler):
@@ -354,13 +359,13 @@ class SigWindow(QtWidgets.QDialog):
         # Define some key helpers
         ##########################################
         # Add another exit shortcut!
-        self.actionExit = QtWidgets.QAction(('E&xit'), self)
+        self.actionExit = QtGui.QAction(('E&xit'), self)
         self.actionExit.setShortcut(QtGui.QKeySequence("Ctrl+Q"))
         self.addAction(self.actionExit)
         self.actionExit.triggered.connect(self.close)
 
         # Add fullscreen shortcut
-        fullscreen_shortcut = QtWidgets.QAction(('Fullscreen'), self)
+        fullscreen_shortcut = QtGui.QAction(('Fullscreen'), self)
         fullscreen_shortcut.setShortcut(QtGui.QKeySequence("F11"))
         self.addAction(fullscreen_shortcut)
         fullscreen_shortcut.triggered.connect(self.switchFullScreen)
@@ -672,7 +677,7 @@ class SigWindow(QtWidgets.QDialog):
         self.status.showMessage("Wavelet Prosody Analyzer | processing " + curr.text() + "...")
         self.populateTierList()
 
-        QtWidgets.qApp.processEvents()
+        APP.processEvents()
 
         self.fUpdate = dict.fromkeys(self.fUpdate, True)
         self.analysis()
@@ -744,7 +749,7 @@ class SigWindow(QtWidgets.QDialog):
 
         if len(self.wav_files) > 0:
             self.status.showMessage("processing " + self.wav_files[i])
-            QtWidgets.qApp.processEvents()
+            APP.processEvents()
             self.filelist.setCurrentRow(0)
 
     def play(self):
@@ -1015,21 +1020,22 @@ class SigWindow(QtWidgets.QDialog):
         #
         # save analyses
         if labels:
-            pass  # FIXME: ????
             loma.save_analyses(os.path.splitext(unicode(self.cur_wav))[0]+".prom",
                                labels,
                                self.prominences,
                                self.boundaries, PLOT_SR)
 
+        # Set axes limits
         self.ax[-1].set_ylim(0,n_scales)
         self.ax[-1].set_xlim(0,len(self.params))
+
+        # Set axes labels
         self.ax[0].set_ylabel("Spec (Hz)")
         self.ax[1].set_ylabel("F0 (Hz)")
         self.ax[2].set_ylabel("Signals")
-
-        self.ax[2].set_yticklabels(["sum", "dur", "en", "f0"])
         self.ax[3].set_ylabel("Wavelet scale (Hz)")
 
+        # Set axes ticks
         plt.setp([a.get_xticklabels() for a in self.ax[0:-1]], visible=False)
         vals = self.ax[-1].get_xticks()[0:]
         ticks_x = ticker.FuncFormatter(lambda vals, p:'{:1.2f}'.format(float(vals/PLOT_SR)))
@@ -1047,14 +1053,14 @@ class SigWindow(QtWidgets.QDialog):
             nbins = len(self.ax[i].get_yticklabels())+1
             self.ax[i].yaxis.set_major_locator(MaxNLocator(nbins=nbins, prune='lower'))
         self.ax[2].set_yticks([0,4,8,12])
-        self.figure.subplots_adjust(hspace=0, wspace=0)
+        self.ax[2].set_yticklabels(["sum", "dur", "en", "f0"])
 
+        # Adjust and draw
+        self.figure.subplots_adjust(hspace=0, wspace=0)
         if prev_zoom:
             self.ax[3].axis(prev_zoom)
-
         self.canvas.draw()
         self.canvas.show()
-
         self.fUpdate = dict.fromkeys(self.fUpdate, False)
 
 
@@ -1149,12 +1155,6 @@ def main():
         start_time = time.time()
         logging.info("start time = " + time.asctime())
 
-        # Running main function <=> run application
-        app = QtWidgets.QApplication.instance()
-
-        if not app:
-            app = QtWidgets.QApplication(sys.argv)
-
         main = SigWindow(configuration)
 
         main.show()
@@ -1165,7 +1165,7 @@ def main():
                      ((time.time() - start_time) / 60.0))
 
         # Exit program
-        sys.exit(app.exec_())
+        sys.exit(APP.exec())
     except KeyboardInterrupt as e:  # Ctrl-C
         raise e
     except SystemExit as e:  # sys.exit()
