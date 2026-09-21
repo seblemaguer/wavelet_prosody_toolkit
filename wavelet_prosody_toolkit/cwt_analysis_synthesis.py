@@ -56,10 +56,6 @@ import numpy as np
 # List of logging levels used to setup everything using verbose option
 LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
 
-# FIXME: be more specific!
-warnings.simplefilter("ignore", np.ComplexWarning)  # Plotting can't deal with complex, but we don't care
-
-
 ###############################################################################
 # Functions
 ###############################################################################
