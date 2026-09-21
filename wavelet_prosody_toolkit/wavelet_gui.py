@@ -90,6 +90,7 @@ PLOT_SR = 200.0
 ###############################################################################
 # List of logging levels used to setup everything using verbose option
 LEVEL = [logging.WARNING, logging.INFO, logging.DEBUG]
+DEFAULT_CMAP = "viridis"
 
 if not QtWidgets.QApplication.instance():
     APP = QtWidgets.QApplication(["SpINY"])
@@ -804,7 +805,7 @@ class SigWindow(QtWidgets.QDialog):
             self.ax[0].cla()
             self.orig_sr, self.sig = misc.read_wav(self.cur_wav)
             self.plot_len = int(len(self.sig) * (PLOT_SR/self.orig_sr))
-            self.ax[0].specgram(self.sig,mode="magnitude", NFFT=200, noverlap=40, Fs=self.orig_sr, xextent=[0, self.plot_len], cmap="plasma")
+            self.ax[0].specgram(self.sig,mode="magnitude", NFFT=200, noverlap=40, Fs=self.orig_sr, xextent=[0, self.plot_len], cmap=DEFAULT_CMAP)
 
         if self.fUpdate['energy']:
             # 'energy' is just a smoothed envelope here
@@ -963,7 +964,7 @@ class SigWindow(QtWidgets.QDialog):
             self.scales*=PLOT_SR
         if self.fUpdate['tiers'] or self.fUpdate['cwt']:
             import matplotlib.colors as colors
-            self.ax[-1].imshow(self.cwt,aspect="auto", cmap="inferno", interpolation="bicubic")
+            self.ax[-1].imshow(self.cwt,aspect="auto", cmap=DEFAULT_CMAP, interpolation="bicubic")
             #self.ax[-1].contourf(np.real(self.cwt), 100,
             #                     norm=colors.SymLogNorm(linthresh=0.01, linscale=0.05, vmin=-1.0, vmax=1.0),
             #                     cmap="jet")
