@@ -203,6 +203,11 @@ class SigWindow(QtWidgets.QDialog):
         # Define the logger
         self.logger = logging.getLogger(__name__)
 
+
+        self._output_device = QtMultimedia.QAudioOutput()
+        self._player = QtMultimedia.QMediaPlayer()
+        self._player.setAudioOutput(self._output_device)
+
         ##########################################
         # Define internal variables
         ##########################################
@@ -771,11 +776,11 @@ class SigWindow(QtWidgets.QDialog):
         fname = tempfile.mkstemp()[1]
         misc.write_wav(fname, wav_slice, self.orig_sr)
 
-        # FIXME: QSound.play used to fail silently on some systems
         try:
-            QtMultimedia.QSound.play(fname)
+            self._player.setSource(QtCore.QUrl.fromLocalFile(fname))
+            self._player.play()
         except Exception as ex:
-            exception_log(self.logger, "Qsound does not play (use play command instead)", ex, logging.DEBUG)
+            exception_log(self.logger, "Qsound does not play (use play command instead)", ex, logging.WARN)
             os.system("play " + fname)
 
     # main function
