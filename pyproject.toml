@@ -22,8 +22,7 @@ classifiers = [
   'Topic :: Multimedia :: Sound/Audio :: Speech',
   'Topic :: Scientific/Engineering :: Information Analysis',
   'Topic :: Scientific/Engineering :: Visualization',
-  # Pick your license as you wish
-  'License :: OSI Approved :: MIT License',
+  # supported python versions
   'Programming Language :: Python :: 3',
   'Programming Language :: Python :: 3.11',
   'Programming Language :: Python :: 3.12',
@@ -65,13 +64,17 @@ cwt_analysis_synthesis = "wavelet_prosody_toolkit.cwt_analysis_synthesis:main"
 cwt_global_spectrum = "wavelet_prosody_toolkit.cwt_global_spectrum:main"
 wavelet_gui = "wavelet_prosody_toolkit.wavelet_gui:main"
 
+[tool.setuptools.package-data]
+wavelet_prosody_toolkit = ["**/configs/*.*"]  # FIXME: this is a bit hardcore here
+
 [project.urls]
 Homepage = "https://github.com/asuni/wavelet_prosody_toolkit"
 Issues = "https://github.com/asuni/wavelet_prosody_toolkit/issues"
 git = "https://github.com/asuni/wavelet_prosody_toolkit.git"
 
-[tool.setuptools]
-packages = ["wavelet_prosody_toolkit"]
+# [tool.setuptools]
+# packages = ["wavelet_prosody_toolkit"]
+
 
 [tool.black]
 line-length = 120
