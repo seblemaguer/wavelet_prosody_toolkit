@@ -6,7 +6,7 @@ requires = [
 
 [project]
 name = "wavelet_prosody_toolkit"
-version = "1.0"
+version = "1.1.0"
 authors = [
   {name="Antti Suni", email="antti.suni@helsinki.fi"},
   {name="Sébastien Le Maguer", email="sebastien.lemaguer@helsinki.fi"}
